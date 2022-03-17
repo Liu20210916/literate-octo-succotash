@@ -3,20 +3,20 @@ import numpy as np
 
 
 
-def copy_paste(sour_path,dest_path):
+def copy_paste(sour_path,dest_path,w,h):
     # 首先读取源image和目标image
-    src=cv2.imread(sour_path+'.jpg')
-    dst=cv2.imread(dest_path+'.jpg')
+    src=cv2.imread(sour_path)
+    dst=cv2.imread(dest_path)
     sourlabel_path = sour_path.replace('images','labels')
 
-    with open(sourlabel_path+'.txt') as f:
+    with open(sourlabel_path[:-4]+'.txt') as f:
         # 读取源image中的所有label，并转换成相应list，此时是xywh格式
         lb=[x.split() for x in f.read().strip().splitlines() if len(x)]
         lb=np.array(lb, dtype=np.float32)
         f.close()
 
     # 转换成xyxy格式
-    y = xywhn2xyxy(lb[:, 1:], w=1280, h=720)
+    y = xywhn2xyxy(lb[:, 1:], w, h)
     # 求出矩阵的四个角
     y=xyxyxyxy(y)
 
@@ -37,9 +37,9 @@ def copy_paste(sour_path,dest_path):
         lb[nums, 1] = lb[nums, 1] + center[0] / src.shape[1]
         lb[nums, 2] = lb[nums, 2] + center[1] / src.shape[0]
 
-    cv2.imwrite(dest_path + '.jpg', dst)
+    cv2.imwrite(dest_path, dst)
     new_path = dest_path.replace('images', 'labels')
-    with open(new_path+'.txt','a') as f:
+    with open(new_path[:-4]+'.txt','a') as f:
         for i in lb:
             f.write('1 {:.6} {:.6} {:.6} {:.6}'.format(i[1], i[2], i[3], i[4]) + '\n')
         f.close()
@@ -70,6 +70,6 @@ def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
 
 
 if __name__ == '__main__':
-    sour_path='D:/myproject/demo/mydata/images/train/56'
-    dest_path='D:/myproject/demo/mydata/images/train/0'
+    sour_path='D:/myproject/demo/mydata/images/train/56.jpg'
+    dest_path='D:/myproject/demo/mydata/images/train/0.jpg'
     copy_paste(sour_path,dest_path)
