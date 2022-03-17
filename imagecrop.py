@@ -3,7 +3,7 @@ import numpy as np
 import albumentations as A
 import os
 
-def imagecrop(image_dir,new_path,include=[]):
+def imagecrop(image_dir,new_path):
     image_list = os.listdir(image_dir)
     image_list = [ i for i in image_list if i[0]!='.']
     for image in image_list:
@@ -11,19 +11,14 @@ def imagecrop(image_dir,new_path,include=[]):
             name = image.split('.')[0]
             img = cv2.imread(os.path.join(image_dir,image))
             w ,h = img.shape[1] ,img.shape[0]
-            _ =image_dir.replace('images','labels')
+            _  = image_dir.replace('images','labels')
             with open( os.path.join(_,name)+'.txt' ,'r') as f:
                 norm_lb=[x.split() for x in f.read().strip().splitlines() if len(x)]
                 norm_lb=np.array(norm_lb, dtype=np.float32)
                 f.close()
 
-            if include:
-                for i in include:
-                    norm_lb = norm_lb[norm_lb[:,0]==i,:]
-
             sl_w ,sl_h = w//2 ,h//2
 
-            # for i in range(k+1):
             xyxy = np.zeros_like(norm_lb[:,1:],dtype=np.float32)
             # xmin
             xyxy[:,0] = norm_lb[:,1] - norm_lb[:,3]/2
@@ -46,6 +41,7 @@ def imagecrop(image_dir,new_path,include=[]):
                         bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
                     new = transform(image=img, bboxes=norm_lb[:, 1:], class_labels=norm_lb[:, 0])  # transformed
                     im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+                    # 如果分割后的 image 没有 label，则不会写入该 image 和相应 label；如果想写入，把这个判断条件删去即可
                     if labels.size > 0:
                         new_image_path = os.path.join(new_path,name+'-{}{}'.format(i,j))
                         cv2.imwrite(os.path.join(new_image_path+'.jpg') ,im)
@@ -60,4 +56,4 @@ def imagecrop(image_dir,new_path,include=[]):
 if __name__ == '__main__':
     root='D:/myproject/demo/mydata/images/train'
     new_path='D:/myproject/demo/mydata/images/train'
-    imagecrop(root ,new_path ,[0])
+    imagecrop(root ,new_path )
