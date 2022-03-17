@@ -2,14 +2,15 @@ import numpy as np
 import torch
 import cv2
 
-# 之前的策略是：训练一个二分模型，然后将二分模型误判为真样本的假样本纳入数据集（即修改其标签）
-# 现在的策略：不用二分模型，生成样本后，直接用baseline预测，然后将置信度高的假样本调整为真样本；
-def star_aug(predict,label,thresh):
+# 这个函数的意义在于，当你用copy_paste扩充了数据后，再用baseline对训练集预测，然后将那些置信度高的扩充数据添加进数据集；而其余的扩充数据，会被遮蔽；
+# 第一个参数传入预测txt路径；第二个参数传入真实label.txt路径
+def star_aug(predict,label,thresh,w,h):
 
     # 读取预测txt文件，和label.txt文件
     with open(predict,'r') as f:
         lb_p=[x.split() for x in f.read().strip().splitlines() if len(x)]
         lb_p = np.array(lb_p, dtype=np.float32)
+        # 超参数里传入了这个阈值，会把低于阈值的预测label过滤掉
         lb_p = lb_p[lb_p[:, 5] > thresh, :]
         f.close()
     if lb_p.size>0:
@@ -21,7 +22,7 @@ def star_aug(predict,label,thresh):
         # 将两个都转化成tensor
         lb_p=torch.tensor(lb_p)
         lb=torch.tensor(lb)
-        lo = xywhn2xyxy(lb[:,1:],w = 1280,h = 720).int()
+        lo = xywhn2xyxy(lb[:,1:],w ,h).int()
 
         # 从lb里面挨个取数，并与预测label里的每个框计算IOU，如果某个样本IOU超过阈值，且预测为0，而真实类别为1，那么将1修改为0;
         for nums,i in enumerate(lb):
@@ -101,10 +102,8 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
 
 
 
-
-
 if __name__ == '__main__':
     # source是我们预测txt路径；target是我们数据集txt路径
     label='D:/myproject/demo/mydata/labels/train/2-8869.txt'
     predict='D:/myproject/demo/mydata/labels/2-8869.txt'
-    star_aug(predict,label,0.01)
+    star_aug(predict,label,0.01,1280,720)
